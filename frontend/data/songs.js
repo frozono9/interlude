@@ -6,14 +6,22 @@ export const songs = [
     artwork: require('../assets/cover.jpeg'),
     audioFile: require('../assets/levitating.mp3'),
     color: '#384e6e',
+    interlude: {
+      text: "You know what? This next song always gets me in the mood...",
+      duration: 8000
+    }
   },
   {
     id: 2,
     title: "MONACO",
     artist: "Bad Bunny",
     artwork: require('../assets/monaco.jpeg'),
-    audioFile: require('../assets/monaco.mp3'), // placeholder
+    audioFile: require('../assets/monaco.mp3'),
     color: '#7a6a5e',
+    interlude: {
+      text: "Okay so, Bad Bunny in Monaco... let's go!",
+      duration: 6000
+    }
   },
   {
     id: 3,
@@ -22,14 +30,22 @@ export const songs = [
     artwork: require('../assets/titi.jpeg'),
     audioFile: require('../assets/titi.mp3'),
     color: '#a63d3d',
+    interlude: {
+      text: "This one right here, this is the vibe we need right now",
+      duration: 7000
+    }
   },
   {
     id: 4,
     title: "BAILE INoLVIDABLE",
     artist: "Bad Bunny",
     artwork: require('../assets/baile.png'),
-    audioFile: require('../assets/baile.mp3'), // placeholder
+    audioFile: require('../assets/baile.mp3'),
     color: '#3a3a3a',
+    interlude: {
+      text: "Alright, time to dance. No excuses.",
+      duration: 5000
+    }
   },
   {
     id: 5,
