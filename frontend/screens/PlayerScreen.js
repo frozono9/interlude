@@ -148,7 +148,7 @@ export default function PlayerScreen({ route, navigation }) {
       <View style={styles.handleBar} />
       
       <LinearGradient
-        colors={['#4a5a6a', '#1e252b']}
+        colors={[song.color || '#4a5a6a', '#121212']}
         style={styles.container}
       >
         <View style={styles.safeArea}>

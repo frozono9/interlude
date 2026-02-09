@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
   scrollContent: {
-    paddingTop: 60,
+    paddingTop: 40,
     paddingBottom: 120,
   },
   header: {
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     width: width * 0.60,
     height: width * 0.60,
     alignSelf: 'center',
-    marginTop: 30,
+    marginTop: 15,
     marginBottom: 20,
     borderRadius: 8,
     overflow: 'hidden',
@@ -164,8 +164,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   gridImage: {
-    width: (width * 0.75) / 2,
-    height: (width * 0.75) / 2,
+    width: (width * 0.60) / 2,
+    height: (width * 0.60) / 2,
   },
   playlistInfo: {
     alignItems: 'center',
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
   playlistSubtitle: {
     fontSize: 15,
     color: '#ff2d55',
-    fontWeight: '600',
+    fontWeight: '400',
   },
   actionButtons: {
     flexDirection: 'row',
