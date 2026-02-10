@@ -54,16 +54,44 @@ export default function PlaylistScreen({ navigation }) {
             <Ionicons name="play-sharp" size={20} color="white" />
             <Text style={styles.playButtonText}>Play</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.shuffleButton}
-            onPress={() => {
-              const shuffled = [...songs].sort(() => Math.random() - 0.5);
-              navigation.navigate('Player', { songList: shuffled, initialIndex: 0 });
-            }}
-          >
-            <Ionicons name="shuffle" size={20} color="#ff2d55" />
-            <Text style={styles.shuffleButtonText}>Shuffle</Text>
-          </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.shuffleButton}
+          onPress={() => {
+            // Orden específico para el Modo Demo
+            const demoOrder = [
+              "Levitating",
+              "MONACO",
+              "Blinding Lights",
+              "Flowers",
+              "vampire",
+              "As It Was"
+            ];
+            
+            // Reordenar las canciones según el demoOrder
+            const orderedSongs = [];
+            const remainingSongs = [...songs];
+            
+            demoOrder.forEach(title => {
+              const index = remainingSongs.findIndex(s => s.title.toLowerCase() === title.toLowerCase());
+              if (index !== -1) {
+                orderedSongs.push(remainingSongs[index]);
+                remainingSongs.splice(index, 1);
+              }
+            });
+            
+            // Añadir el resto de canciones al final
+            const finalSongList = [...orderedSongs, ...remainingSongs];
+            
+            navigation.navigate('Player', { 
+              songList: finalSongList, 
+              initialIndex: 0, 
+              isDemoMode: true 
+            });
+          }}
+        >
+          <Ionicons name="shuffle" size={20} color="#ff2d55" />
+          <Text style={styles.shuffleButtonText}>Shuffle</Text>
+        </TouchableOpacity>
         </View>
 
         {/* Song List */}
@@ -108,10 +136,7 @@ export default function PlaylistScreen({ navigation }) {
           <Ionicons name="library" size={24} color="#ff2d55" />
           <Text style={[styles.tabLabel, { color: '#ff2d55' }]}>Library</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.tabItem}
-          onPress={() => navigation.navigate('Player', { songList: songs, initialIndex: 0, isDemoMode: true })}
-        >
+        <TouchableOpacity style={styles.tabItem}>
           <Ionicons name="search" size={24} color="#8e8e93" />
           <Text style={styles.tabLabel}>Search</Text>
         </TouchableOpacity>

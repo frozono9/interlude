@@ -112,14 +112,21 @@ export default function PlayerScreen({ route, navigation }) {
       }
 
       console.log(`🤖 Simulando análisis de Interlude para ${song.artist}... (5s)`);
+      if (isDemoMode) console.log('🧪 MODO DEMO ACTIVADO');
       
       // ESPERA ARTIFICIAL DE 5 SEGUNDOS
       await new Promise(resolve => setTimeout(resolve, 5000));
       
       // Seleccionar un anuncio aleatorio localmente (sin repetir el anterior)
-      const ads = song.artist === 'Bad Bunny' 
-        ? ['bb_ticketmaster', 'bb_beats', 'bb_apple']
-        : ['olivia_apple', 'olivia_beats'];
+      let ads;
+      if (isDemoMode) {
+        // En modo demo solo permitimos estos dos específicos
+        ads = song.artist === 'Bad Bunny' ? ['bb_ticketmaster'] : ['olivia_beats'];
+      } else {
+        ads = song.artist === 'Bad Bunny' 
+          ? ['bb_ticketmaster', 'bb_beats', 'bb_apple']
+          : ['olivia_apple', 'olivia_beats'];
+      }
       
       let selectedId;
       if (ads.length > 1) {
@@ -281,9 +288,31 @@ export default function PlayerScreen({ route, navigation }) {
         });
       });
       
-      // PASO 6: Limpiar todo
+      // PASO 6: Transición de salida (6 segundos de música antes de la siguiente)
+      console.log('🎧 Finalizando anuncio, subiendo música de fondo...');
       await adSound.unloadAsync();
       adSoundRef.current = null;
+
+      // 6.1: Fade up (0.08 -> 1.0) en 1 segundo
+      const fadeUpSteps = 15;
+      for (let i = 0; i <= fadeUpSteps; i++) {
+        const v = 0.08 + (i * (1.0 - 0.08) / fadeUpSteps);
+        await bgSound.setVolumeAsync(v);
+        await new Promise(resolve => setTimeout(resolve, 1000 / fadeUpSteps));
+      }
+
+      // 6.2: Mantener a tope 3.5 segundos
+      await new Promise(resolve => setTimeout(resolve, 3500));
+
+      // 6.3: Fade down (1.0 -> 0.0) en 1.5 segundos
+      const fadeDownSteps = 15;
+      for (let i = 0; i <= fadeDownSteps; i++) {
+        const v = 1.0 - (i * 1.0 / fadeDownSteps);
+        await bgSound.setVolumeAsync(v);
+        await new Promise(resolve => setTimeout(resolve, 1500 / fadeDownSteps));
+      }
+      
+      // PASO 7: Limpiar todo
       await bgSound.stopAsync();
       await bgSound.unloadAsync();
       backgroundSoundRef.current = null;
@@ -477,7 +506,7 @@ export default function PlayerScreen({ route, navigation }) {
             {isShowingAd && (
               <View style={styles.interludeBadgeContainer}>
                 <View style={styles.interludeBadge}>
-                  <Text style={styles.interludeBadgeText}>powered by </Text>
+                  <Text style={styles.interludeBadgeText}>AI generated with </Text>
                   <Text style={styles.interludeBadgeBrand}>interlude</Text>
                 </View>
               </View>
@@ -563,11 +592,12 @@ export default function PlayerScreen({ route, navigation }) {
               <TouchableOpacity 
                 style={styles.playPauseBtn}
                 onPress={handlePlayPause}
+                disabled={isShowingAd || isPreparingAd}
               >
                 <Ionicons 
                   name={isPlaying ? "pause-sharp" : "play-sharp"} 
                   size={64} 
-                  color="white" 
+                  color={(isShowingAd || isPreparingAd) ? "rgba(255,255,255,0.2)" : "white"} 
                 />
               </TouchableOpacity>
 
