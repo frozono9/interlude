@@ -12,7 +12,7 @@ By integrating with platforms like **Spotify** or **Apple Music**, Interlude tra
   <p><i>Click to watch the full product demonstration on YouTube</i></p>
 </div>
 
-## Idea"
+## Idea
 Traditional ads are detached from the listener's preferences. **Interlude** flips the script by leveraging AI to generate "Smart Intermissions" that are:
 
 - **Artist-Led**: Your favorite artists are the ones speaking. If you're listening to Bad Bunny, it's Benito himself who introduces the next track or tells you about a new product.
