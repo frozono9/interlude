@@ -4,7 +4,13 @@
 
 By integrating with platforms like **Spotify** or **Apple Music**, Interlude transforms dead silence into a radio-style experience where artists talk directly to you, making every ad feel like an organic recommendation rather than an interruption.
 
-[![Demo Video](https://img.shields.io/badge/YouTube-Demo%20Video-red?style=for-the-badge&logo=youtube)](https://www.youtube.com/watch?v=tu-video-id) 
+## Watch the Demo
+<div align="center">
+  <a href="https://www.youtube.com/watch?v=tu-video-id">
+    <img src="https://img.youtube.com/vi/tu-video-id/0.jpg" alt="Interlude Demo Video" width="100%">
+  </a>
+  <p><i>Click to watch the full product demonstration on YouTube</i></p>
+</div>
 
 ## The Concept: From "Ads" to "Artist Intermissions"
 Traditional ads are detached from the listener's preferences. **Interlude** flips the script by leveraging AI to generate "Smart Intermissions" that are:
@@ -18,14 +24,14 @@ For example, when transitioning from a Bad Bunny track to Rauw Alejandro, the AI
 ## Tech Stack
 The project is built on a client-server architecture:
 
-- **Frontend (Mobile Integration)**:
+- **Frontend**:
   - **React Native & Expo**: For cross-platform experience.
   - **Expo-AV**: Audio engine supporting multi-channel playback (background music + AI voiceover).
   - **DJ Fading System**: Simple "ducking" logic that drops background music to 8% volume during voiceovers and recovers it progressively.
 
-- **Backend (Intelligence Layer)**:
+- **Backend**:
   - **Node.js & Express**: Orchestration API for real-time resource coordination.
-  - **Google Gemini 1.5 Flash**: The brain behind the scripts. It analyzes song metadata, user location, and profile to draft contextual scripts.
+  - **Google Gemini 2.5 Flash**: The AI behind the scripts. It analyzes song metadata, user location, and profile to draft contextual scripts.
   - **ElevenLabs AI**: The vocal engine. It converts Gemini's scripts into ultra-realistic human voices that clone the style and tone of the artists.
 
 ## Key Features
