@@ -17,6 +17,7 @@ const LOCAL_ADS = {
   'bb_apple': require('../assets/ad_bb_apple.mp3'),
   'olivia_apple': require('../assets/ad_olivia_apple.mp3'),
   'olivia_beats': require('../assets/ad_olivia_beats.mp3'),
+  'bb_rauw_collab': [require('../assets/ad_bbra_apple_bb.mp3'), require('../assets/ad_bbra_apple_ra.mp3')],
 };
 
 export default function PlayerScreen({ route, navigation }) {
@@ -64,7 +65,7 @@ export default function PlayerScreen({ route, navigation }) {
           setProgress(status.positionMillis <= 0 ? 0 : currentProgress);
           
           const remainingMillis = status.durationMillis - status.positionMillis;
-          const supportedArtists = ['Bad Bunny', 'Olivia Rodrigo'];
+          const supportedArtists = ['Bad Bunny', 'Olivia Rodrigo', 'Rauw Alejandro'];
           
           // FASE 1: 5 segundos antes - Empezar análisis (Sticker sale DURANTE 5 segundos)
           if (remainingMillis <= 5000 && 
@@ -104,7 +105,7 @@ export default function PlayerScreen({ route, navigation }) {
     adPreparedForIndexRef.current = currentIndex;
     
     try {
-      const supportedArtists = ['Bad Bunny', 'Olivia Rodrigo'];
+      const supportedArtists = ['Bad Bunny', 'Olivia Rodrigo', 'Rauw Alejandro'];
       if (!supportedArtists.includes(song.artist)) {
         setIsPreparingAd(false);
         isPreparingRequestRef.current = false;
@@ -117,15 +118,27 @@ export default function PlayerScreen({ route, navigation }) {
       // ESPERA ARTIFICIAL DE 5 SEGUNDOS
       await new Promise(resolve => setTimeout(resolve, 5000));
       
+      // DETECTOR DE CONVERSACIÓN (BB & Rauw)
+      const nextIndex = (currentIndex + 1) % songList.length;
+      const nextSong = songList[nextIndex];
+      const isCollabPair = (song.artist === 'Bad Bunny' && nextSong.artist === 'Rauw Alejandro') || 
+                          (song.artist === 'Rauw Alejandro' && nextSong.artist === 'Bad Bunny');
+
       // Seleccionar un anuncio aleatorio localmente (sin repetir el anterior)
       let ads;
-      if (isDemoMode) {
+      if (isCollabPair) {
+        console.log('🔥 ¡CONVERSACIÓN DETECTADA! Bad Bunny x Rauw Alejandro');
+        ads = ['bb_rauw_collab'];
+      } else if (isDemoMode) {
         // En modo demo solo permitimos estos dos específicos
-        ads = song.artist === 'Bad Bunny' ? ['bb_ticketmaster'] : ['olivia_beats'];
+        ads = song.artist === 'Bad Bunny' ? ['bb_ticketmaster'] : 
+              song.artist === 'Olivia Rodrigo' ? ['olivia_beats'] : ['bb_apple'];
       } else {
         ads = song.artist === 'Bad Bunny' 
           ? ['bb_ticketmaster', 'bb_beats', 'bb_apple']
-          : ['olivia_apple', 'olivia_beats'];
+          : song.artist === 'Olivia Rodrigo'
+          ? ['olivia_apple', 'olivia_beats']
+          : ['bb_apple']; // Fallback para Rauw solo
       }
       
       let selectedId;
@@ -152,14 +165,18 @@ export default function PlayerScreen({ route, navigation }) {
       preparedAdRef.current = {
         isLocal: true,
         localId: selectedId,
-        artist: song.artist,
-        title: selectedId.includes('ticketmaster') ? 'Concierto Barcelona' : 
+        artist: selectedId === 'bb_rauw_collab' ? 'Bad Bunny & Rauw Alejandro' : song.artist,
+        title: selectedId === 'bb_rauw_collab' ? 'Apple Music Premium: Spatial Audio' :
+               selectedId.includes('ticketmaster') ? 'Concierto Barcelona' : 
                selectedId.includes('beats') ? 'Beats Studio Pro' : 'Apple Music Premium',
-        artwork: selectedId.includes('apple') ? 'apple-ad.jpg' : 
+        artwork: selectedId === 'bb_rauw_collab' ? 'apple-ad.jpg' :
+                 selectedId.includes('apple') ? 'apple-ad.jpg' : 
                  selectedId.includes('beats') ? 'beats-ad.jpg' : 'concert-barcelona.jpg',
-        color: selectedId.includes('apple') ? '#9b30ff' : 
+        color: selectedId === 'bb_rauw_collab' ? '#9b30ff' :
+               selectedId.includes('apple') ? '#9b30ff' : 
                selectedId.includes('beats') ? '#241f1f' : '#FF6B6B',
-        sponsorLink: selectedId.includes('ticketmaster') ? 'https://www.ticketmaster.es/artist/bad-bunny-entradas/979454' :
+        sponsorLink: selectedId === 'bb_rauw_collab' ? 'https://www.apple.com/es/apple-music/' :
+                    selectedId.includes('ticketmaster') ? 'https://www.ticketmaster.es/artist/bad-bunny-entradas/979454' :
                     selectedId.includes('apple') ? 'https://www.apple.com/es/apple-music/' :
                     selectedId.includes('beats') ? 'https://www.beatsbydre.com/es/headphones/solo4-wireless' : 'https://interlude.fm'
       };
@@ -175,8 +192,8 @@ export default function PlayerScreen({ route, navigation }) {
   };
 
   const handleSongEnd = async () => {
-    // Voces disponibles: Bad Bunny y Olivia Rodrigo
-    const supportedArtists = ['Bad Bunny', 'Olivia Rodrigo'];
+    // Voces disponibles: Bad Bunny, Olivia Rodrigo y Rauw Alejandro
+    const supportedArtists = ['Bad Bunny', 'Olivia Rodrigo', 'Rauw Alejandro'];
     
     // Si la canción tiene interlude Y el artista está soportado, mostrar anuncio
     if (song.interlude && supportedArtists.includes(song.artist)) {
@@ -273,25 +290,39 @@ export default function PlayerScreen({ route, navigation }) {
       
       // PASO 5: Lanzar el anuncio (voz) ENCIMA
       console.log('🎤 Reproduciendo anuncio...');
-      const { sound: adSound } = await Audio.Sound.createAsync(
-        audioSource,
-        { shouldPlay: true, volume: 1.0 }
-      );
-      adSoundRef.current = adSound;
+      const audioSources = Array.isArray(audioSource) ? audioSource : [audioSource];
       
-      await new Promise((resolve) => {
-        adSound.setOnPlaybackStatusUpdate((status) => {
-          if (status.isLoaded) {
-            setIsPlaying(status.isPlaying);
-            if (status.didJustFinish) resolve();
-          }
+      for (let i = 0; i < audioSources.length; i++) {
+        const source = audioSources[i];
+        const isCollab = audioSources.length > 1;
+        const isRauwPart = isCollab && i === 1;
+        
+        // Si es la parte de Rauw, bajamos el fondo casi al mínimo y aseguramos volumen voz al máx
+        if (isRauwPart && backgroundSoundRef.current) {
+          await backgroundSoundRef.current.setVolumeAsync(0.02);
+        }
+
+        const { sound: adPart } = await Audio.Sound.createAsync(
+          source,
+          { shouldPlay: true, volume: isRauwPart ? 1.0 : 0.7 } // Benito al 70% y Rauw al 100% para contraste
+        );
+        adSoundRef.current = adPart;
+        
+        await new Promise((resolve) => {
+          adPart.setOnPlaybackStatusUpdate((status) => {
+            if (status.isLoaded) {
+              setIsPlaying(status.isPlaying);
+              if (status.didJustFinish) resolve();
+            }
+          });
         });
-      });
+        
+        await adPart.unloadAsync();
+        adSoundRef.current = null;
+      }
       
       // PASO 6: Transición de salida (6 segundos de música antes de la siguiente)
       console.log('🎧 Finalizando anuncio, subiendo música de fondo...');
-      await adSound.unloadAsync();
-      adSoundRef.current = null;
 
       // 6.1: Fade up (0.08 -> 1.0) en 1 segundo
       const fadeUpSteps = 15;

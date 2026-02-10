@@ -107,4 +107,16 @@ export const songs = [
     audioFile: require('../assets/dontstartnow.mp3'), // placeholder
     color: '#dcdcdc',
   },
+  {
+    id: 12,
+    title: "Diluvio",
+    artist: "Rauw Alejandro",
+    artwork: require('../assets/diluvio.jpg'),
+    audioFile: require('../assets/diluvio.mp3'),
+    color: '#1a1a1a',
+    interlude: {
+      text: "Rauw Alejandro brings the storm with this one...",
+      duration: 8000
+    }
+  },
 ];

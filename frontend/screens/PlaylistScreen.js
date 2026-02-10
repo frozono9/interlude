@@ -60,9 +60,9 @@ export default function PlaylistScreen({ navigation }) {
             // Orden específico para el Modo Demo
             const demoOrder = [
               "Levitating",
+              "Tití Me Preguntó",
+              "Diluvio",
               "MONACO",
-              "Blinding Lights",
-              "Flowers",
               "vampire",
               "As It Was"
             ];
