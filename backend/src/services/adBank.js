@@ -14,6 +14,10 @@ const adBank = [
       product: 'Concierto en Barcelona',
       details: 'estaré en Barcelona del 22 al 23 de mayo, cantando en el Estadi Olímpic. Consigue tus entradas ya en Ticketmaster'
     },
+    contentEn: {
+      product: 'Barcelona Concert',
+      details: 'I will be performing in Barcelona from May 22nd to 23rd at the Olympic Stadium. Get your tickets now on Ticketmaster!'
+    },
     artwork: 'concert-barcelona.jpg', // Placeholder
     color: '#FF6B6B',
     sponsorLink: 'https://www.ticketmaster.es',

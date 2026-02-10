@@ -50,9 +50,9 @@ class ElevenLabsService {
           text: text,
           model_id: 'eleven_turbo_v2_5',
           voice_settings: {
-            speed: 0.95,
-            stability: 0.35, // Baja estabilidad = más fluido, sin trabas
-            similarity_boost: 0.85, // Alta similitud para mantener la voz
+            speed: 1.0, // Normal natural speed para voces clonadas
+            stability: 0.55, // Aumentado para evitar glitches en Bad Bunny
+            similarity_boost: 0.75, // Ajustado para mejor balance vocal
             style: 0.15, // Bajo estilo = menos exageración, más natural
             use_speaker_boost: true
           }

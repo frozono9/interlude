@@ -6,7 +6,8 @@ class GeminiService {
       throw new Error('GEMINI_API_KEY is required');
     }
     this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+    // Cambiamos a gemini-1.5-flash que es más estable y rápido
+    this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
   }
 
   /**
@@ -33,65 +34,24 @@ class GeminiService {
     let prompt = '';
 
     if (artistName === 'Bad Bunny') {
-      styleRules = 'Usa tu jerga real de Puerto Rico ("puñeta", "diablo", "estamos activos", "mami/papi", "fuego").';
-      prompt = `Eres ${artistName}. No eres un locutor ni estás leyendo un guion. Estás hablando por FaceTime con un buen colega.
+      prompt = `Actúa como Bad Bunny. Hablas con tu colega ${shortName}.
+FORMATO OBLIGATORIO (4 LÍNEAS):
+1. Saludo: "Ey ey, Bad Bunny aquí"
+2. Conexión: Menciona "${currentSong}" y "${adContent.product}" (${adContent.details})
+3. Call to action: "Consíguelo ya" o "Actívate"
+4. Transición: "Y ahora, te dejo con ${nextArtist} y su hit: ${nextSong}!"
 
-CONTEXTO REAL:
-- Estás hablando con: ${shortName}
-- Lugar: ${userLocation}
-- Momento: Es de ${timeContext}
-- Acaba de sonar: "${currentSong}"
-- Va a sonar ahora: "${nextSong}" de ${nextArtist}
-- Info que tienes que mencionar (PERO A TU MANERA): ${adContent.product}. Detalles: ${adContent.details}
-
-MISIÓN:
-Sáltate las fórmulas típicas. Crea un momento de conexión real con ${shortName}. 
-Imagínate qué podría estar haciendo ${shortName} en ${userLocation} a esta hora de la ${timeContext}. Inventa un detalle basado en el mood de "${currentSong}".
-
-REGLAS DE ORO:
-1. NO uses "mencionar Línea 1", ni formatos rígidos.
-2. ${styleRules}
-3. Que no parezca un anuncio. Que parezca que me estás recomendando algo porque nos conocemos.
-4. EXTREMA BREVEDAD: Máximo 25 palabras. Aproximadamente 7-8 segundos al hablar.
-5. NO uses asteriscos * ni [acotaciones]. Solo el texto que vas a decir.
-6. El guion DEBE estar en ESPAÑOL.
-
-Hazlo fluido, con pausas naturales.
-
-Script:`;
+Reglas: Usa jerga "puñeta", "diablo". Máximo 45 palabras. Solo texto para hablar.`;
     } else {
-      // Por defecto para Olivia Rodrigo y otros internacionales
-      styleRules = artistName === 'Olivia Rodrigo' 
-        ? 'Use a vulnerable, authentic, and slightly teenage angst yet sophisticated tone. Use expressions like "so real", "literally", "it is what it is", "bestie", "I feel like".'
-        : 'Use a natural, friendly tone as if talking to a close friend.';
-      
-      const timeContextEn = timeContext === 'mañana' ? 'morning' : (timeContext === 'tarde' ? 'afternoon' : 'night');
-      
-      prompt = `You are ${artistName}. You are NOT an announcer and you are not reading a script. You are on a FaceTime call with a close friend.
+      const bestieAlt = artistName === 'Olivia Rodrigo' ? 'literally bestie' : 'friend';
+      prompt = `Act as ${artistName}. Talk to your friend ${shortName}.
+MANDATORY 4-LINE FORMAT:
+1. Greeting: "Hey hey, ${artistName} here"
+2. Connection: Mention "${currentSong}" and "${adContent.product}" (${adContent.details})
+3. Call to action: "Check it out" or "Get yours now"
+4. Transition: "And now, here is ${nextArtist} with ${nextSong}!"
 
-REAL CONTEXT:
-- You are talking to: ${shortName}
-- Location: ${userLocation}
-- Time: It's ${timeContextEn}
-- Just finished: "${currentSong}"
-- Up next: "${nextSong}" by ${nextArtist}
-- Info to mention (IN YOUR OWN WAY): ${adContent.product}. Details: ${adContent.details}
-
-MISSION:
-Skip typical ad formulas. Create a moment of real connection with ${shortName}.
-Imagine what ${shortName} might be doing in ${userLocation} at this time of the ${timeContextEn}. Invent a detail based on the mood of "${currentSong}".
-
-GOLDEN RULES:
-1. DO NOT use "Line 1" or rigid formats.
-2. ${styleRules}
-3. Make it NOT sound like an ad. It should feel like a personal recommendation because you know each other.
-4. EXTREME BREVITY: Maximum 25 words. Approximately 7-8 seconds of speech.
-5. DO NOT use asterisks * or [stage directions]. Only the text you will say.
-6. The entire response MUST be in ENGLISH.
-
-Keep it fluid, with natural pauses.
-
-Script:`;
+Rules: ${artistName === 'Olivia Rodrigo' ? 'Use teenage aesthetic.' : 'Natural tone.'} Max 45 words. ONLY spoken text. ALL ENGLISH.`;
     }
 
     try {
@@ -102,8 +62,15 @@ Script:`;
       console.log('✅ Script generado por Gemini:', script);
       return script;
     } catch (error) {
-      console.error('❌ Error generando script con Gemini:', error);
-      throw new Error(`Gemini API error: ${error.message}`);
+      console.warn('⚠️ Gemini falló (Quota/Error), usando script de fallback:', error.message);
+      
+      // Fallback inteligente según el artista y contenido
+      if (artistName === 'Bad Bunny') {
+        const adInfo = adContent.details || 'algo muy duro';
+        return `Ey ey, Bad Bunny aquí. Escúchate esto, si te gustó "${currentSong}", tienes que chequear ${adContent.product}. Realmente está muy duro, ${adInfo}. Y ahora, te dejo con ${nextArtist} y su hit: ${nextSong}!`;
+      } else {
+        return `Hey hey, it's ${artistName}. Just vibe with "${currentSong}"? You'll love ${adContent.product}. ${adContent.details}. Check it out bestie! And now, more music with ${nextArtist} and their track "${nextSong}".`;
+      }
     }
   }
 

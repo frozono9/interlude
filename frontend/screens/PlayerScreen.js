@@ -8,8 +8,19 @@ import * as apiService from '../services/apiService';
 
 const { width } = Dimensions.get('window');
 
+// MAPEO DE ANUNCIOS LOCALES (Fakes)
+// He puesto demo-ad.mp3 como placeholder para que no falle al compilar.
+// Cuando tengas los archivos reales en frontend/assets/, cambia los nombres aquí.
+const LOCAL_ADS = {
+  'bb_ticketmaster': require('../assets/ad_bb_ticketmaster.mp3'),
+  'bb_beats': require('../assets/ad_bb_beats.mp3'),
+  'bb_apple': require('../assets/ad_bb_apple.mp3'),
+  'olivia_apple': require('../assets/ad_olivia_apple.mp3'),
+  'olivia_beats': require('../assets/ad_olivia_beats.mp3'),
+};
+
 export default function PlayerScreen({ route, navigation }) {
-  const { songList, initialIndex } = route.params;
+  const { songList, initialIndex, isDemoMode } = route.params;
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const song = songList[currentIndex];
   
@@ -21,14 +32,20 @@ export default function PlayerScreen({ route, navigation }) {
   const [position, setPosition] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isPreparingAd, setIsPreparingAd] = useState(false);
+  const isPreparingRequestRef = useRef(false);
   
   const soundRef = useRef(null);
+  const backgroundSoundRef = useRef(null);
+  const adSoundRef = useRef(null);
   const [isShowingAd, setIsShowingAd] = useState(false);
   const [adMetadata, setAdMetadata] = useState(null);
   
   // Ref para guardar el anuncio preparado por el backend
   const preparedAdRef = useRef(null);
   const adPreparedForIndexRef = useRef(null);
+  const lastAdIdRef = useRef(null);
+  const forcedNextSongTitleRef = useRef(null);
+  const isInterludeSequenceActiveRef = useRef(false);
   
   // Contador de canciones desde el último anuncio
   const [songsSinceLastAd, setSongsSinceLastAd] = useState(0);
@@ -46,76 +63,107 @@ export default function PlayerScreen({ route, navigation }) {
           const currentProgress = status.positionMillis / status.durationMillis;
           setProgress(status.positionMillis <= 0 ? 0 : currentProgress);
           
-          // Preparar anuncio cuando llegue al 20% de la canción (antes disparaba al 40%)
-          // Esto da más tiempo al backend para generar sin que el usuario espere
+          const remainingMillis = status.durationMillis - status.positionMillis;
           const supportedArtists = ['Bad Bunny', 'Olivia Rodrigo'];
-          if (currentProgress >= 0.2 && 
+          
+          // FASE 1: 5 segundos antes - Empezar análisis (Sticker sale DURANTE 5 segundos)
+          if (remainingMillis <= 5000 && 
               song.interlude && 
               supportedArtists.includes(song.artist) &&
               adPreparedForIndexRef.current !== currentIndex &&
+              !isPreparingRequestRef.current &&
               !isShowingAd) {
             prepareNextAd();
+          }
+
+          // FASE 2: 3 segundos antes - Empezar la secuencia de transición DJ
+          if (remainingMillis <= 3000 && 
+              !isInterludeSequenceActiveRef.current &&
+              !isShowingAd &&
+              song.interlude && 
+              supportedArtists.includes(song.artist)) {
+            playAd();
           }
         }
         setIsPlaying(status.isPlaying);
         
-        // Cuando termina una canción
-        if (status.didJustFinish) {
+        // Cuando termina una canción (solo si no estamos en secuencia de Interlude)
+        if (status.didJustFinish && !isInterludeSequenceActiveRef.current) {
           handleSongEnd();
         }
       }
     });
   };
   
-  // Preparar el anuncio con anticipación
+  // Preparar el anuncio con anticipación (Simulación de 5 segundos)
   const prepareNextAd = async () => {
+    if (isPreparingRequestRef.current) return;
+    
+    isPreparingRequestRef.current = true;
     setIsPreparingAd(true);
+    adPreparedForIndexRef.current = currentIndex;
+    
     try {
-      // Voces disponibles: Bad Bunny y Olivia Rodrigo
       const supportedArtists = ['Bad Bunny', 'Olivia Rodrigo'];
       if (!supportedArtists.includes(song.artist)) {
-        console.log(`⚠️ Solo ${supportedArtists.join(' y ')} tienen voces clonadas. Saltando generación.`);
         setIsPreparingAd(false);
+        isPreparingRequestRef.current = false;
         return;
       }
+
+      console.log(`🤖 Simulando análisis de Interlude para ${song.artist}... (5s)`);
       
-      // Marcar que ya preparamos el anuncio para esta canción
-      adPreparedForIndexRef.current = currentIndex;
+      // ESPERA ARTIFICIAL DE 5 SEGUNDOS
+      await new Promise(resolve => setTimeout(resolve, 5000));
       
-      const nextIndex = currentIndex < songList.length - 1 ? currentIndex + 1 : 0;
-      const nextSong = songList[nextIndex];
+      // Seleccionar un anuncio aleatorio localmente (sin repetir el anterior)
+      const ads = song.artist === 'Bad Bunny' 
+        ? ['bb_ticketmaster', 'bb_beats', 'bb_apple']
+        : ['olivia_apple', 'olivia_beats'];
       
-      console.log(`🤖 Preparando anuncio con IA (${song.artist})...`);
-      console.log(`De: "${song.title}" - ${song.artist}`);
-      console.log(`A: "${nextSong.title}" - ${nextSong.artist}`);
-      console.log(`Canciones desde último anuncio: ${songsSinceLastAd}`);
-      
-      const response = await apiService.analyzeAndGenerateAd(
-        {
-          title: song.title,
-          artist: song.artist
-        },
-        {
-          title: nextSong.title,
-          artist: nextSong.artist
-        },
-        'Barcelona',
-        songsSinceLastAd,
-        'Alex Latorre' // Nombre del usuario para personalización
-      );
-      
-      if (response.showAd && response.adData) {
-        preparedAdRef.current = response.adData;
-        console.log('✅ Anuncio preparado y listo para usar');
+      let selectedId;
+      if (ads.length > 1) {
+        do {
+          selectedId = ads[Math.floor(Math.random() * ads.length)];
+        } while (selectedId === lastAdIdRef.current);
       } else {
-        preparedAdRef.current = null;
-        console.log('❌ No se mostrará anuncio:', response.reason);
+        selectedId = ads[0];
       }
+      
+      lastAdIdRef.current = selectedId;
+      
+      // REGLAS DE TRANSICIÓN FORZADA
+      if (selectedId === 'bb_ticketmaster') {
+        forcedNextSongTitleRef.current = 'Blinding Lights';
+      } else if (selectedId === 'olivia_apple') {
+        forcedNextSongTitleRef.current = 'As It Was';
+      } else {
+        forcedNextSongTitleRef.current = null;
+      }
+      
+      // Simular la metadata que vendría del backend
+      preparedAdRef.current = {
+        isLocal: true,
+        localId: selectedId,
+        artist: song.artist,
+        title: selectedId.includes('ticketmaster') ? 'Concierto Barcelona' : 
+               selectedId.includes('beats') ? 'Beats Studio Pro' : 'Apple Music Premium',
+        artwork: selectedId.includes('apple') ? 'apple-ad.jpg' : 
+                 selectedId.includes('beats') ? 'beats-ad.jpg' : 'concert-barcelona.jpg',
+        color: selectedId.includes('apple') ? '#9b30ff' : 
+               selectedId.includes('beats') ? '#241f1f' : '#FF6B6B',
+        sponsorLink: selectedId.includes('ticketmaster') ? 'https://www.ticketmaster.es/artist/bad-bunny-entradas/979454' :
+                    selectedId.includes('apple') ? 'https://www.apple.com/es/apple-music/' :
+                    selectedId.includes('beats') ? 'https://www.beatsbydre.com/es/headphones/solo4-wireless' : 'https://interlude.fm'
+      };
+
+      console.log('✅ Anuncio local preparado:', selectedId);
     } catch (error) {
-      console.error('Error preparando anuncio:', error);
+      console.error('Error simulando anuncio:', error);
       preparedAdRef.current = null;
     } finally {
       setIsPreparingAd(false);
+      isPreparingRequestRef.current = false;
     }
   };
 
@@ -134,32 +182,31 @@ export default function PlayerScreen({ route, navigation }) {
 
   const playAd = async () => {
     try {
+      if (isInterludeSequenceActiveRef.current) return;
+      isInterludeSequenceActiveRef.current = true;
       setIsTransitioning(true);
-      
-      // Usar anuncio preparado por el backend o fallback al hardcoded
+
+      // Esperar al análisis si aún no ha terminado
+      if (isPreparingRequestRef.current) {
+        while (isPreparingRequestRef.current) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+
+      // PREPARACIÓN DE DATOS
       let adData;
       let audioSource;
       
       if (preparedAdRef.current) {
-        console.log('✅ Usando anuncio generado con IA');
         const aiAd = preparedAdRef.current;
-        
-        // Mapeo dinámico de imágenes basado en el nombre del archivo del backend
         const getArtworkSource = (filename) => {
-          // Nota: Los requires en React Native deben ser estáticos. 
-          // Si el archivo no existe físicamente en assets/, el bundler fallará.
           try {
             switch (filename) {
-              case 'apple-ad.jpg':
-                return require('../assets/apple-ad.jpg'); 
-              case 'beats-ad.jpg':
-                return require('../assets/beats-ad.jpg');
-              default:
-                return require('../assets/ad-cover.jpg');
+              case 'apple-ad.jpg': return require('../assets/apple-ad.jpg'); 
+              case 'beats-ad.jpg': return require('../assets/beats-ad.jpg');
+              default: return require('../assets/ad-cover.jpg');
             }
-          } catch (e) {
-            return require('../assets/ad-cover.jpg');
-          }
+          } catch (e) { return require('../assets/ad-cover.jpg'); }
         };
 
         adData = {
@@ -167,71 +214,101 @@ export default function PlayerScreen({ route, navigation }) {
           artist: aiAd.artist,
           artwork: getArtworkSource(aiAd.artwork),
           color: aiAd.color,
-          sponsorLink: aiAd.sponsorLink
+          sponsorLink: aiAd.sponsorLink || 'https://interlude.fm'
         };
-        
-        // Obtener URL completa del audio del backend
-        const audioUrl = apiService.getFullAudioUrl(aiAd.audioUrl);
-        audioSource = { uri: audioUrl };
-        
-        console.log('🎵 Audio URL:', audioUrl);
+        audioSource = aiAd.isLocal ? LOCAL_ADS[aiAd.localId] : { uri: apiService.getFullAudioUrl(aiAd.audioUrl) };
       } else {
-        console.log('⚠️ Usando anuncio hardcoded (fallback)');
         adData = {
-          title: "Bad Bunny en BCN",
-          artist: "",
+          title: "Interlude Sponsor",
+          artist: "Publicidad",
           artwork: require('../assets/ad-cover.jpg'),
-          color: '#be2929',
-          sponsorLink: 'https://www.ticketmaster.es/artist/bad-bunny-entradas/979454'
+          color: '#333',
+          sponsorLink: 'https://interlude.fm'
         };
         audioSource = require('../assets/demo-ad.mp3');
       }
-      
+
+      // PASO 1: Cambiar UI inmediatamente
       setAdMetadata(adData);
       setIsShowingAd(true);
+
+      // PASO 2: CARGAR DE NUEVO la canción anterior como música de fondo
+      console.log('🎧 Cargando música de fondo...');
+      const { sound: bgSound } = await Audio.Sound.createAsync(
+        song.audioFile,  // La canción que acaba de terminar
+        { shouldPlay: true, volume: 1.0, isLooping: true }
+      );
+      backgroundSoundRef.current = bgSound;
+
+      // Actualizar isPlaying con el fondo mientras no haya locución
+      bgSound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && !adSoundRef.current) {
+          setIsPlaying(status.isPlaying);
+        }
+      });
+
+      // PASO 3: Mantener 3 segundos con música de fondo a volumen normal
+      console.log('🎧 3s de música de fondo a volumen normal...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // PASO 4: Bajar volumen PROGRESIVAMENTE (Fade out DJ)
+      console.log('🎧 Fade out de la música de fondo...');
+      const fadeSteps = 20;
+      const fadeDuration = 1500; // 1.5 segundos para un fade suave
+      const volumeStart = 1.0;
+      const volumeEnd = 0.08;
       
-      // Cargar y reproducir audio del anuncio
+      for (let i = 0; i <= fadeSteps; i++) {
+        const v = volumeStart - (i * (volumeStart - volumeEnd) / fadeSteps);
+        await bgSound.setVolumeAsync(v);
+        await new Promise(resolve => setTimeout(resolve, fadeDuration / fadeSteps));
+      }
+      
+      // PASO 5: Lanzar el anuncio (voz) ENCIMA
+      console.log('🎤 Reproduciendo anuncio...');
       const { sound: adSound } = await Audio.Sound.createAsync(
         audioSource,
         { shouldPlay: true, volume: 1.0 }
       );
+      adSoundRef.current = adSound;
       
-      // Esperar a que termine el anuncio y actualizar progreso
       await new Promise((resolve) => {
         adSound.setOnPlaybackStatusUpdate((status) => {
           if (status.isLoaded) {
-            if (status.durationMillis) {
-              setDuration(status.durationMillis);
-              setPosition(status.positionMillis);
-              setProgress(status.positionMillis / status.durationMillis);
-            }
-            if (status.didJustFinish) {
-              resolve();
-            }
+            setIsPlaying(status.isPlaying);
+            if (status.didJustFinish) resolve();
           }
         });
       });
       
-      // Limpiar
+      // PASO 6: Limpiar todo
       await adSound.unloadAsync();
+      adSoundRef.current = null;
+      await bgSound.stopAsync();
+      await bgSound.unloadAsync();
+      backgroundSoundRef.current = null;
+
       setIsShowingAd(false);
       setAdMetadata(null);
       setIsTransitioning(false);
-      
-      // Limpiar anuncio preparado
       preparedAdRef.current = null;
-      
-      // Resetear contador de canciones (acabamos de mostrar un anuncio)
+      isInterludeSequenceActiveRef.current = false;
       setSongsSinceLastAd(0);
-      
-      // Pasar a siguiente canción
       handleNext();
     } catch (error) {
-      console.error('Error playing ad:', error);
+      console.error('Error playing ad sequence:', error);
+      if (backgroundSoundRef.current) {
+        try {
+          await backgroundSoundRef.current.stopAsync();
+          await backgroundSoundRef.current.unloadAsync();
+        } catch (e) {}
+        backgroundSoundRef.current = null;
+      }
       setIsShowingAd(false);
       setAdMetadata(null);
       setIsTransitioning(false);
       preparedAdRef.current = null;
+      isInterludeSequenceActiveRef.current = false;
       handleNext();
     }
   };
@@ -296,6 +373,17 @@ export default function PlayerScreen({ route, navigation }) {
     // Incrementar contador de canciones desde último anuncio
     setSongsSinceLastAd(prev => prev + 1);
     
+    // REGLAS ESPECIALES DE TRANSICIÓN (Mix DJ)
+    if (forcedNextSongTitleRef.current) {
+      const forcedIndex = songList.findIndex(s => s.title === forcedNextSongTitleRef.current);
+      if (forcedIndex !== -1) {
+        console.log(`✨ Transición forzada activada: Saltando a ${forcedNextSongTitleRef.current}`);
+        forcedNextSongTitleRef.current = null; // Reset de la regla
+        setCurrentIndex(forcedIndex);
+        return;
+      }
+    }
+
     if (currentIndex < songList.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
@@ -315,6 +403,21 @@ export default function PlayerScreen({ route, navigation }) {
   };
 
   const handlePlayPause = async () => {
+    // Controlar anuncio y música de fondo si estamos en un anuncio
+    if (isShowingAd) {
+      const activeSound = adSoundRef.current || backgroundSoundRef.current;
+      if (activeSound) {
+        if (isPlaying) {
+          if (adSoundRef.current) await adSoundRef.current.pauseAsync();
+          if (backgroundSoundRef.current) await backgroundSoundRef.current.pauseAsync();
+        } else {
+          if (adSoundRef.current) await adSoundRef.current.playAsync();
+          if (backgroundSoundRef.current) await backgroundSoundRef.current.playAsync();
+        }
+      }
+      return;
+    }
+
     if (!soundRef.current) return;
     
     if (isPlaying) {
@@ -335,8 +438,15 @@ export default function PlayerScreen({ route, navigation }) {
   const handleSlidingComplete = async (value) => {
     setIsScrubbing(false);
     if (soundRef.current) {
-      const seekPosition = value * duration;
-      await soundRef.current.setPositionAsync(seekPosition);
+      try {
+        const status = await soundRef.current.getStatusAsync();
+        if (status.isLoaded) {
+          const seekPosition = value * duration;
+          await soundRef.current.setPositionAsync(seekPosition);
+        }
+      } catch (e) {
+        console.log('Error seeking:', e);
+      }
     }
   };
 
@@ -378,7 +488,7 @@ export default function PlayerScreen({ route, navigation }) {
               <View style={styles.preparingStickerContainer}>
                 <View style={[styles.interludeBadge, { backgroundColor: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.3)' }]}>
                   <ActivityIndicator size="small" color="#FF00A8" style={{ marginRight: 8, transform: [{ scale: 0.8 }] }} />
-                  <Text style={styles.interludeBadgeText}>Generating with </Text>
+                  <Text style={styles.interludeBadgeText}>Analysing with </Text>
                   <Text style={styles.interludeBadgeBrand}>interlude</Text>
                 </View>
               </View>
@@ -442,31 +552,30 @@ export default function PlayerScreen({ route, navigation }) {
             </View>
 
             <View style={styles.controlsRow}>
-              <TouchableOpacity onPress={handlePrevious} disabled={isShowingAd}>
+              <TouchableOpacity onPress={handlePrevious} disabled={isShowingAd || isPreparingAd}>
                 <Ionicons 
                   name="play-back-sharp" 
                   size={48} 
-                  color={isShowingAd ? "rgba(255,255,255,0.2)" : "white"} 
+                  color={(isShowingAd || isPreparingAd) ? "rgba(255,255,255,0.2)" : "white"} 
                 />
               </TouchableOpacity>
               
               <TouchableOpacity 
                 style={styles.playPauseBtn}
                 onPress={handlePlayPause}
-                disabled={isShowingAd}
               >
                 <Ionicons 
                   name={isPlaying ? "pause-sharp" : "play-sharp"} 
                   size={64} 
-                  color={isShowingAd ? "rgba(255,255,255,0.2)" : "white"} 
+                  color="white" 
                 />
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={handleNext} disabled={isShowingAd}>
+              <TouchableOpacity onPress={handleNext} disabled={isShowingAd || isPreparingAd}>
                 <Ionicons 
                   name="play-forward-sharp" 
                   size={48} 
-                  color={isShowingAd ? "rgba(255,255,255,0.2)" : "white"} 
+                  color={(isShowingAd || isPreparingAd) ? "rgba(255,255,255,0.2)" : "white"} 
                 />
               </TouchableOpacity>
             </View>

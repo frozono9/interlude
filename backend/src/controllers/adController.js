@@ -12,13 +12,13 @@ function getBackgroundPath(title) {
   const songMapping = {
     'levitating': 'levitating.mp3',
     'monaco': 'monaco.mp3',
+    'vampire': 'vampire.mp3',
     'tití me preguntó': 'titi.mp3',
     'baile inolvidable': 'baile.mp3',
     'cruel summer': 'cruel.mp3',
     'as it was': 'harry.mp3',
     'flowers': 'flowers.mp3',
     'paint the town red': 'paint.mp3',
-    'vampire': 'vampire.mp3',
     'drivers license': 'vampire.mp3',
     'bad idea right?': 'vampire.mp3',
     'blinding lights': 'blinding.mp3',
@@ -38,6 +38,7 @@ function getBackgroundPath(title) {
  * Body: { currentSong, nextSong, userLocation, songsSinceLastAd }
  */
 async function analyzeAndGenerateAd(req, res) {
+  const startTime = Date.now();
   try {
     const { currentSong, nextSong, userLocation = 'Barcelona', songsSinceLastAd = 0, userName = 'Alex' } = req.body;
 
@@ -100,14 +101,19 @@ async function analyzeAndGenerateAd(req, res) {
     console.log(`📣 Anuncio seleccionado: ${selectedAd.name}`);
 
     // 3. Seleccionar el content apropiado según el idioma del artista
-    const latinArtists = ['Bad Bunny']; // Artistas que hablan español
-    const adContent = latinArtists.includes(currentSong.artist) 
+    const artistNameLower = (currentSong.artist || '').trim().toLowerCase();
+    const latinArtists = ['bad bunny']; // Artistas que hablan español
+    
+    const isLatinArtist = latinArtists.includes(artistNameLower);
+    const adContent = isLatinArtist 
       ? selectedAd.content 
       : (selectedAd.contentEn || selectedAd.content); // Usar inglés si está disponible
 
-    console.log(`🌍 Idioma del anuncio: ${latinArtists.includes(currentSong.artist) ? 'Español' : 'English'}`);
+    console.log(`🌍 Idioma del anuncio: ${isLatinArtist ? 'Español' : 'English'} (Artista: ${currentSong.artist})`);
 
-    // 4. Generar script con Gemini
+    // 4. Generar script con Gemini (con fallback interno)
+    const geminiStart = Date.now();
+    console.log('🤖 Generando script...');
     const script = await geminiService.generateAdScript({
       artistName: currentSong.artist,
       currentSong: currentSong.title,
@@ -118,24 +124,29 @@ async function analyzeAndGenerateAd(req, res) {
       userLocation,
       timeContext
     });
+    const geminiTime = ((Date.now() - geminiStart) / 1000).toFixed(2);
 
     // 5. Generar audio con ElevenLabs
     const adId = `ad_${selectedAd.id}_${crypto.randomBytes(8).toString('hex')}`;
     const rawSpeechId = `raw_${adId}`;
     
-    console.log('🎤 Generando audio con ElevenLabs...');
+    const elevenStart = Date.now();
+    console.log('🎤 Generando audio...');
     const { audioPath: rawSpeechPath } = await elevenLabsService.generateAndSaveAd(
       script,
       currentSong.artist,
       rawSpeechId
     );
+    const elevenTime = ((Date.now() - elevenStart) / 1000).toFixed(2);
 
-    // 6. Mezclar con música de fondo (2s intro, low volume, fade in/out)
-    console.log('🎚️ Mezclando con música de fondo...');
+    // 6. Mezclar con música de fondo
+    const mixStart = Date.now();
+    console.log('🎚️ Mezclando audio...');
     const finalAudioPath = path.join(path.dirname(rawSpeechPath), `${adId}.mp3`);
     const bgPath = getBackgroundPath(currentSong.title);
     
     await audioMixerService.mixAd(rawSpeechPath, bgPath, finalAudioPath, 2000);
+    const mixTime = ((Date.now() - mixStart) / 1000).toFixed(2);
 
     // Opcional: Eliminar el audio raw de ElevenLabs para no llenar el disco
     try {
@@ -145,12 +156,16 @@ async function analyzeAndGenerateAd(req, res) {
     }
 
     // 7. Retornar metadata del anuncio
+    const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.log(`✅ Anuncio generado exitosamente en ${totalTime}s`);
+    console.log(`   └─ Gemini: ${geminiTime}s | ElevenLabs: ${elevenTime}s | FFmpeg: ${mixTime}s\n`);
+
     const response = {
       showAd: true,
       adData: {
         id: adId,
         type: selectedAd.type,
-        title: selectedAd.content.product,
+        title: adContent.product,
         artist: currentSong.artist, // El artista que "habla"
         script: script,
         audioPath: finalAudioPath,
@@ -163,18 +178,24 @@ async function analyzeAndGenerateAd(req, res) {
       analysis: {
         reason: `Anuncio mostrado después de ${songsSinceLastAd} canciones (mínimo 3)`,
         confidence: 1.0
+      },
+      timing: {
+        total: totalTime
       }
     };
 
-    console.log('✅ Anuncio generado exitosamente\n');
     res.json(response);
 
   } catch (error) {
-    console.error('❌ Error en analyzeAndGenerateAd:', error);
-    res.status(500).json({
-      error: 'Error generando anuncio',
-      message: error.message,
-      showAd: false
+    const totalTime = startTime ? ((Date.now() - startTime) / 1000).toFixed(2) : 'unknown';
+    console.error(`⚠️ Error en generación (${totalTime}s). Saltando anuncio de forma segura.`);
+    console.error(`   Motivo: ${error.message}`);
+    
+    // En lugar de 500, respondemos con showAd: false para que la app no se bloquee
+    res.json({
+      showAd: false,
+      reason: `Error interno: ${error.message}`,
+      timing: { total: totalTime }
     });
   }
 }

@@ -34,38 +34,10 @@ class AudioMixerService {
           // Input 1: Speech
           .input(speechPath)
           .complexFilter([
-            // background: trim, fade in 2s, low volume, fade out last 2s
-            {
-              filter: 'atrim',
-              options: { duration: totalDuration },
-              inputs: '0:a',
-              outputs: 'bg_trim'
-            },
-            {
-              filter: 'afade',
-              options: { type: 'in', start_time: 0, duration: 2 },
-              inputs: 'bg_trim',
-              outputs: 'bg_in'
-            },
-            {
-              filter: 'volume',
-              options: { volume: 0.06 }, // Volumen mucho más bajo para que destaque la voz
-              inputs: 'bg_in',
-              outputs: 'bg_vol'
-            },
-            {
-              filter: 'afade',
-              options: { type: 'out', start_time: totalDuration - 2, duration: 2 },
-              inputs: 'bg_vol',
-              outputs: 'bg_out'
-            },
+            // background: trim, fade in, low volume, fade out - optimized string filter
+            `[0:a]atrim=duration=${totalDuration},afade=t=in:st=0:d=2,volume=0.04,afade=t=out:st=${totalDuration - 2}:d=2[bg_out]`,
             // speech: delay
-            {
-              filter: 'adelay',
-              options: { delays: `${delayMs}|${delayMs}` },
-              inputs: '1:a',
-              outputs: 'speech_delayed'
-            },
+            `[1:a]adelay=${delayMs}|${delayMs}[speech_delayed]`,
             // mix
             {
               filter: 'amix',

@@ -25,6 +25,18 @@ export const songs = [
   },
   {
     id: 3,
+    title: "vampire",
+    artist: "Olivia Rodrigo",
+    artwork: require('../assets/vampire.jpg'),
+    audioFile: require('../assets/vampire.mp3'), // placeholder
+    color: '#311432',
+    interlude: {
+      text: "Olivia is literally so real for this...",
+      duration: 15000
+    }
+  },
+  {
+    id: 9,
     title: "Tití Me Preguntó",
     artist: "Bad Bunny",
     artwork: require('../assets/titi.jpeg'),
@@ -78,18 +90,6 @@ export const songs = [
     artwork: require('../assets/paint.png'),
     audioFile: require('../assets/paint.mp3'), // placeholder
     color: '#ff0000',
-  },
-  {
-    id: 9,
-    title: "vampire",
-    artist: "Olivia Rodrigo",
-    artwork: require('../assets/vampire.jpg'),
-    audioFile: require('../assets/vampire.mp3'), // placeholder
-    color: '#311432',
-    interlude: {
-      text: "Olivia is literally so real for this...",
-      duration: 15000
-    }
   },
   {
     id: 10,

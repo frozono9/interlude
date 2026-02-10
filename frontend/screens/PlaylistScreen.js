@@ -108,7 +108,10 @@ export default function PlaylistScreen({ navigation }) {
           <Ionicons name="library" size={24} color="#ff2d55" />
           <Text style={[styles.tabLabel, { color: '#ff2d55' }]}>Library</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.tabItem}>
+        <TouchableOpacity 
+          style={styles.tabItem}
+          onPress={() => navigation.navigate('Player', { songList: songs, initialIndex: 0, isDemoMode: true })}
+        >
           <Ionicons name="search" size={24} color="#8e8e93" />
           <Text style={styles.tabLabel}>Search</Text>
         </TouchableOpacity>
