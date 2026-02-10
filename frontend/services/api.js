@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'http://10.192.84.215:3000/api';
 
 export const TransitionAPI = {
   async generateMixPlan(currentSongId, nextSongId, interlude = null) {

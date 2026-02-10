@@ -20,6 +20,11 @@ app.use('/api/audio', require('./routes/audio'));
 // Transition Generation Routes
 app.use('/api/transitions', require('./routes/transitions'));
 
+// AI-Powered Ads Routes
+app.use('/api/ads', require('./routes/ads'));
+
 app.listen(PORT, () => {
   console.log(`🎵 Interlude Backend running on port ${PORT}`);
+  console.log(`📡 Health check: http://localhost:${PORT}/health`);
+  console.log(`🤖 AI Ads API: http://localhost:${PORT}/api/ads/analyze`);
 });

@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useState, useEffect, useRef } from 'react';
 import Slider from '@react-native-community/slider';
 import { Audio } from 'expo-av';
+import * as apiService from '../services/apiService';
 
 const { width } = Dimensions.get('window');
 
@@ -23,6 +24,13 @@ export default function PlayerScreen({ route, navigation }) {
   const soundRef = useRef(null);
   const [isShowingAd, setIsShowingAd] = useState(false);
   const [adMetadata, setAdMetadata] = useState(null);
+  
+  // Ref para guardar el anuncio preparado por el backend
+  const preparedAdRef = useRef(null);
+  const adPreparedForIndexRef = useRef(null);
+  
+  // Contador de canciones desde el último anuncio
+  const [songsSinceLastAd, setSongsSinceLastAd] = useState(0);
 
   // Datos a mostrar: o la canción actual o el anuncio
   const displayData = isShowingAd && adMetadata ? adMetadata : song;
@@ -36,6 +44,16 @@ export default function PlayerScreen({ route, navigation }) {
         if (!isScrubbing && status.durationMillis > 0) {
           const currentProgress = status.positionMillis / status.durationMillis;
           setProgress(status.positionMillis <= 0 ? 0 : currentProgress);
+          
+          // Preparar anuncio cuando llegue al 40% de la canción
+          // Solo para Bad Bunny (única voz clonada disponible)
+          if (currentProgress >= 0.4 && 
+              song.interlude && 
+              song.artist === 'Bad Bunny' &&
+              adPreparedForIndexRef.current !== currentIndex &&
+              !isShowingAd) {
+            prepareNextAd();
+          }
         }
         setIsPlaying(status.isPlaying);
         
@@ -46,10 +64,56 @@ export default function PlayerScreen({ route, navigation }) {
       }
     });
   };
+  
+  // Preparar el anuncio con anticipación (solo para Bad Bunny)
+  const prepareNextAd = async () => {
+    try {
+      // Verificación adicional: solo Bad Bunny tiene voz clonada
+      if (song.artist !== 'Bad Bunny') {
+        console.log('⚠️ Solo Bad Bunny tiene voz clonada. Saltando generación de anuncio.');
+        return;
+      }
+      
+      // Marcar que ya preparamos el anuncio para esta canción
+      adPreparedForIndexRef.current = currentIndex;
+      
+      const nextIndex = currentIndex < songList.length - 1 ? currentIndex + 1 : 0;
+      const nextSong = songList[nextIndex];
+      
+      console.log('🤖 Preparando anuncio con IA (Bad Bunny)...');
+      console.log(`De: "${song.title}" - ${song.artist}`);
+      console.log(`A: "${nextSong.title}" - ${nextSong.artist}`);
+      console.log(`Canciones desde último anuncio: ${songsSinceLastAd}`);
+      
+      const response = await apiService.analyzeAndGenerateAd(
+        {
+          title: song.title,
+          artist: song.artist
+        },
+        {
+          title: nextSong.title,
+          artist: nextSong.artist
+        },
+        'Barcelona',
+        songsSinceLastAd
+      );
+      
+      if (response.showAd && response.adData) {
+        preparedAdRef.current = response.adData;
+        console.log('✅ Anuncio preparado y listo para usar');
+      } else {
+        preparedAdRef.current = null;
+        console.log('❌ No se mostrará anuncio:', response.reason);
+      }
+    } catch (error) {
+      console.error('Error preparando anuncio:', error);
+      preparedAdRef.current = null;
+    }
+  };
 
   const handleSongEnd = async () => {
-    // Si la canción tiene interlude, mostrar anuncio
-    if (song.interlude) {
+    // Si la canción tiene interlude Y es de Bad Bunny (única voz disponible), mostrar anuncio
+    if (song.interlude && song.artist === 'Bad Bunny') {
       await playAd();
     } else {
       // Ir directo a siguiente canción
@@ -61,20 +125,45 @@ export default function PlayerScreen({ route, navigation }) {
     try {
       setIsTransitioning(true);
       
-      // Configurar metadata del anuncio
-      const adData = {
-        title: "Bad Bunny en BCN",
-        artist: "",
-        artwork: require('../assets/ad-cover.jpg'),
-        color: '#be2929',
-        sponsorLink: 'https://www.ticketmaster.es/artist/bad-bunny-entradas/979454'
-      };
+      // Usar anuncio preparado por el backend o fallback al hardcoded
+      let adData;
+      let audioSource;
+      
+      if (preparedAdRef.current) {
+        console.log('✅ Usando anuncio generado con IA');
+        const aiAd = preparedAdRef.current;
+        
+        adData = {
+          title: aiAd.title,
+          artist: aiAd.artist,
+          artwork: require('../assets/ad-cover.jpg'), // Usar placeholder por ahora
+          color: aiAd.color,
+          sponsorLink: aiAd.sponsorLink
+        };
+        
+        // Obtener URL completa del audio del backend
+        const audioUrl = apiService.getFullAudioUrl(aiAd.audioUrl);
+        audioSource = { uri: audioUrl };
+        
+        console.log('🎵 Audio URL:', audioUrl);
+      } else {
+        console.log('⚠️ Usando anuncio hardcoded (fallback)');
+        adData = {
+          title: "Bad Bunny en BCN",
+          artist: "",
+          artwork: require('../assets/ad-cover.jpg'),
+          color: '#be2929',
+          sponsorLink: 'https://www.ticketmaster.es/artist/bad-bunny-entradas/979454'
+        };
+        audioSource = require('../assets/demo-ad.mp3');
+      }
+      
       setAdMetadata(adData);
       setIsShowingAd(true);
       
       // Cargar y reproducir audio del anuncio
       const { sound: adSound } = await Audio.Sound.createAsync(
-        require('../assets/demo-ad.mp3'),
+        audioSource,
         { shouldPlay: true, volume: 1.0 }
       );
       
@@ -100,6 +189,12 @@ export default function PlayerScreen({ route, navigation }) {
       setAdMetadata(null);
       setIsTransitioning(false);
       
+      // Limpiar anuncio preparado
+      preparedAdRef.current = null;
+      
+      // Resetear contador de canciones (acabamos de mostrar un anuncio)
+      setSongsSinceLastAd(0);
+      
       // Pasar a siguiente canción
       handleNext();
     } catch (error) {
@@ -107,6 +202,7 @@ export default function PlayerScreen({ route, navigation }) {
       setIsShowingAd(false);
       setAdMetadata(null);
       setIsTransitioning(false);
+      preparedAdRef.current = null;
       handleNext();
     }
   };
@@ -168,6 +264,9 @@ export default function PlayerScreen({ route, navigation }) {
   };
 
   const handleNext = () => {
+    // Incrementar contador de canciones desde último anuncio
+    setSongsSinceLastAd(prev => prev + 1);
+    
     if (currentIndex < songList.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
