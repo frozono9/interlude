@@ -63,11 +63,11 @@ export default function PlayerScreen({ route, navigation }) {
       
       // Configurar metadata del anuncio
       const adData = {
-        title: "Coca-Cola Original",
+        title: "Bad Bunny en BCN",
         artist: "",
         artwork: require('../assets/ad-cover.jpg'),
-        color: '#D4B896', // Color beige/marrón claro que combina con la imagen
-        sponsorLink: 'https://www.coca-cola.com'
+        color: '#be2929',
+        sponsorLink: 'https://www.ticketmaster.es/artist/bad-bunny-entradas/979454'
       };
       setAdMetadata(adData);
       setIsShowingAd(true);
@@ -78,11 +78,18 @@ export default function PlayerScreen({ route, navigation }) {
         { shouldPlay: true, volume: 1.0 }
       );
       
-      // Esperar a que termine el anuncio
+      // Esperar a que termine el anuncio y actualizar progreso
       await new Promise((resolve) => {
         adSound.setOnPlaybackStatusUpdate((status) => {
-          if (status.isLoaded && status.didJustFinish) {
-            resolve();
+          if (status.isLoaded) {
+            if (status.durationMillis) {
+              setDuration(status.durationMillis);
+              setPosition(status.positionMillis);
+              setProgress(status.positionMillis / status.durationMillis);
+            }
+            if (status.didJustFinish) {
+              resolve();
+            }
           }
         });
       });
