@@ -130,9 +130,14 @@ export default function PlayerScreen({ route, navigation }) {
         console.log('🔥 ¡CONVERSACIÓN DETECTADA! Bad Bunny x Rauw Alejandro');
         ads = ['bb_rauw_collab'];
       } else if (isDemoMode) {
-        // En modo demo solo permitimos estos dos específicos
-        ads = song.artist === 'Bad Bunny' ? ['bb_ticketmaster'] : 
-              song.artist === 'Olivia Rodrigo' ? ['olivia_beats'] : ['bb_apple'];
+        // En modo demo seguimos la secuencia estricta solicitada
+        if (song.title === 'vampire') {
+          ads = ['olivia_beats'];
+        } else if (song.title === 'MONACO') {
+          ads = ['bb_ticketmaster'];
+        } else {
+          ads = song.artist === 'Bad Bunny' ? ['bb_apple'] : ['olivia_apple'];
+        }
       } else {
         ads = song.artist === 'Bad Bunny' 
           ? ['bb_ticketmaster', 'bb_beats', 'bb_apple']
@@ -155,8 +160,10 @@ export default function PlayerScreen({ route, navigation }) {
       // REGLAS DE TRANSICIÓN FORZADA
       if (selectedId === 'bb_ticketmaster') {
         forcedNextSongTitleRef.current = 'Blinding Lights';
-      } else if (selectedId === 'olivia_apple') {
+      } else if (selectedId === 'olivia_beats') {
         forcedNextSongTitleRef.current = 'As It Was';
+      } else if (selectedId === 'bb_rauw_collab') {
+        forcedNextSongTitleRef.current = 'Diluvio';
       } else {
         forcedNextSongTitleRef.current = null;
       }
