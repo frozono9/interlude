@@ -86,6 +86,10 @@ export const songs = [
     artwork: require('../assets/vampire.jpg'),
     audioFile: require('../assets/vampire.mp3'), // placeholder
     color: '#311432',
+    interlude: {
+      text: "Olivia is literally so real for this...",
+      duration: 15000
+    }
   },
   {
     id: 10,
@@ -102,37 +106,5 @@ export const songs = [
     artwork: require('../assets/dontstartnow.png'),
     audioFile: require('../assets/dontstartnow.mp3'), // placeholder
     color: '#dcdcdc',
-  },
-  {
-    id: 12,
-    title: "Save Your Tears",
-    artist: "The Weeknd",
-    artwork: { uri: 'https://picsum.photos/id/20/400/400' },
-    audioFile: require('../assets/levitating.mp3'), // placeholder
-    color: '#84a59d',
-  },
-  {
-    id: 13,
-    title: "Seven",
-    artist: "Jungkook",
-    artwork: { uri: 'https://picsum.photos/id/21/400/400' },
-    audioFile: require('../assets/levitating.mp3'), // placeholder
-    color: '#333333',
-  },
-  {
-    id: 14,
-    title: "Dance The Night",
-    artist: "Dua Lipa",
-    artwork: { uri: 'https://picsum.photos/id/22/400/400' },
-    audioFile: require('../assets/levitating.mp3'), // placeholder
-    color: '#ff006e',
-  },
-  {
-    id: 15,
-    title: "What Was I Made For?",
-    artist: "Billie Eilish",
-    artwork: { uri: 'https://picsum.photos/id/23/400/400' },
-    audioFile: require('../assets/levitating.mp3'), // placeholder
-    color: '#efefef',
   },
 ];

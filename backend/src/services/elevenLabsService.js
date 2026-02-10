@@ -10,9 +10,10 @@ class ElevenLabsService {
     this.apiKey = process.env.ELEVENLABS_API_KEY;
     this.baseUrl = 'https://api.elevenlabs.io/v1';
     
-    // IDs de voces clonadas (por ahora solo Bad Bunny)
+    // IDs de voces clonadas
     this.voiceIds = {
       'Bad Bunny': process.env.ELEVENLABS_VOICE_ID_BAD_BUNNY || null,
+      'Olivia Rodrigo': process.env.ELEVENLABS_VOICE_ID_OLIVIA_RODRIGO || null,
       // Añadir más artistas aquí cuando tengas sus voces clonadas
     };
   }
@@ -39,7 +40,7 @@ class ElevenLabsService {
     try {
       const response = await axios({
         method: 'post',
-        url: `${this.baseUrl}/text-to-speech/${voiceId}`,
+        url: `${this.baseUrl}/text-to-speech/${voiceId}?optimize_streaming_latency=4`,
         headers: {
           'Accept': 'audio/mpeg',
           'xi-api-key': this.apiKey,
@@ -47,12 +48,12 @@ class ElevenLabsService {
         },
         data: {
           text: text,
-          model_id: 'eleven_multilingual_v2',
+          model_id: 'eleven_turbo_v2_5',
           voice_settings: {
-            speed: 0.88,
-            stability: 0.5,
-            similarity_boost: 0.75,
-            style: 0.52,
+            speed: 0.95,
+            stability: 0.35, // Baja estabilidad = más fluido, sin trabas
+            similarity_boost: 0.85, // Alta similitud para mantener la voz
+            style: 0.15, // Bajo estilo = menos exageración, más natural
             use_speaker_boost: true
           }
         },

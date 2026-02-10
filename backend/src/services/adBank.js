@@ -23,29 +23,37 @@ const adBank = [
     id: 'product-beats-headphones',
     type: 'product',
     name: 'Auriculares Beats',
-    eligibleArtists: ['Bad Bunny', 'Olivia Rodrigo', 'Dua Lipa'], // Artistas que pueden promocionar
+    eligibleArtists: ['Bad Bunny', 'Olivia Rodrigo', 'Dua Lipa'],
     content: {
       product: 'Auriculares Beats Studio Pro',
       details: 'los nuevos Beats Studio Pro. Cancelación de ruido premium, sonido increíble. Los uso en el estudio y son increíbles'
     },
-    artwork: 'beats-headphones.jpg', // Placeholder
-    color: '#B91D2E',
+    contentEn: {
+      product: 'Beats Studio Pro Headphones',
+      details: 'the new Beats Studio Pro. Premium noise cancellation, incredible sound. I use them in the studio and they are amazing'
+    },
+    artwork: 'beats-ad.jpg',
+    color: '#241f1f',
     sponsorLink: 'https://www.beatsbydre.com',
-    priority: 5
+    priority: 10
   },
   {
-    id: 'sponsor-cocacola',
+    id: 'sponsor-apple-music',
     type: 'sponsor',
-    name: 'Coca-Cola',
-    eligibleArtists: ['Bad Bunny', 'Olivia Rodrigo', 'Dua Lipa', 'Miley Cyrus'], // Cualquier artista popular
+    name: 'Apple Music Premium',
+    eligibleArtists: ['Bad Bunny', 'Olivia Rodrigo', 'Dua Lipa', 'Miley Cyrus'],
     content: {
-      product: 'Coca-Cola',
-      details: 'Coca-Cola, la bebida que me acompaña en el estudio. Saborea el momento'
+      product: 'Apple Music Premium',
+      details: 'Pásate a Apple Music Premium para escuchar mis temas en Spatial Audio. Tienes 30 días gratis, sin anuncios, y puedes descargar todo para cuando estés de viaje o en el gym.'
     },
-    artwork: 'ad-cover.jpg', // Ya existe
-    color: '#be2929',
-    sponsorLink: 'https://www.coca-cola.com',
-    priority: 3
+    contentEn: {
+      product: 'Apple Music Premium',
+      details: 'Switch to Apple Music Premium to hear my songs in Spatial Audio. You get 30 days free, no ads, and you can download everything for when you are traveling or at the gym.'
+    },
+    artwork: 'apple-ad.jpg',
+    color: '#9b30ff',
+    sponsorLink: 'https://www.apple.com/apple-music/',
+    priority: 10
   }
 ];
 

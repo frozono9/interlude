@@ -20,6 +20,7 @@ export default function PlayerScreen({ route, navigation }) {
   const [duration, setDuration] = useState(0);
   const [position, setPosition] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isPreparingAd, setIsPreparingAd] = useState(false);
   
   const soundRef = useRef(null);
   const [isShowingAd, setIsShowingAd] = useState(false);
@@ -45,11 +46,12 @@ export default function PlayerScreen({ route, navigation }) {
           const currentProgress = status.positionMillis / status.durationMillis;
           setProgress(status.positionMillis <= 0 ? 0 : currentProgress);
           
-          // Preparar anuncio cuando llegue al 40% de la canción
-          // Solo para Bad Bunny (única voz clonada disponible)
-          if (currentProgress >= 0.4 && 
+          // Preparar anuncio cuando llegue al 20% de la canción (antes disparaba al 40%)
+          // Esto da más tiempo al backend para generar sin que el usuario espere
+          const supportedArtists = ['Bad Bunny', 'Olivia Rodrigo'];
+          if (currentProgress >= 0.2 && 
               song.interlude && 
-              song.artist === 'Bad Bunny' &&
+              supportedArtists.includes(song.artist) &&
               adPreparedForIndexRef.current !== currentIndex &&
               !isShowingAd) {
             prepareNextAd();
@@ -65,12 +67,15 @@ export default function PlayerScreen({ route, navigation }) {
     });
   };
   
-  // Preparar el anuncio con anticipación (solo para Bad Bunny)
+  // Preparar el anuncio con anticipación
   const prepareNextAd = async () => {
+    setIsPreparingAd(true);
     try {
-      // Verificación adicional: solo Bad Bunny tiene voz clonada
-      if (song.artist !== 'Bad Bunny') {
-        console.log('⚠️ Solo Bad Bunny tiene voz clonada. Saltando generación de anuncio.');
+      // Voces disponibles: Bad Bunny y Olivia Rodrigo
+      const supportedArtists = ['Bad Bunny', 'Olivia Rodrigo'];
+      if (!supportedArtists.includes(song.artist)) {
+        console.log(`⚠️ Solo ${supportedArtists.join(' y ')} tienen voces clonadas. Saltando generación.`);
+        setIsPreparingAd(false);
         return;
       }
       
@@ -80,7 +85,7 @@ export default function PlayerScreen({ route, navigation }) {
       const nextIndex = currentIndex < songList.length - 1 ? currentIndex + 1 : 0;
       const nextSong = songList[nextIndex];
       
-      console.log('🤖 Preparando anuncio con IA (Bad Bunny)...');
+      console.log(`🤖 Preparando anuncio con IA (${song.artist})...`);
       console.log(`De: "${song.title}" - ${song.artist}`);
       console.log(`A: "${nextSong.title}" - ${nextSong.artist}`);
       console.log(`Canciones desde último anuncio: ${songsSinceLastAd}`);
@@ -95,7 +100,8 @@ export default function PlayerScreen({ route, navigation }) {
           artist: nextSong.artist
         },
         'Barcelona',
-        songsSinceLastAd
+        songsSinceLastAd,
+        'Alex Latorre' // Nombre del usuario para personalización
       );
       
       if (response.showAd && response.adData) {
@@ -108,12 +114,17 @@ export default function PlayerScreen({ route, navigation }) {
     } catch (error) {
       console.error('Error preparando anuncio:', error);
       preparedAdRef.current = null;
+    } finally {
+      setIsPreparingAd(false);
     }
   };
 
   const handleSongEnd = async () => {
-    // Si la canción tiene interlude Y es de Bad Bunny (única voz disponible), mostrar anuncio
-    if (song.interlude && song.artist === 'Bad Bunny') {
+    // Voces disponibles: Bad Bunny y Olivia Rodrigo
+    const supportedArtists = ['Bad Bunny', 'Olivia Rodrigo'];
+    
+    // Si la canción tiene interlude Y el artista está soportado, mostrar anuncio
+    if (song.interlude && supportedArtists.includes(song.artist)) {
       await playAd();
     } else {
       // Ir directo a siguiente canción
@@ -133,10 +144,28 @@ export default function PlayerScreen({ route, navigation }) {
         console.log('✅ Usando anuncio generado con IA');
         const aiAd = preparedAdRef.current;
         
+        // Mapeo dinámico de imágenes basado en el nombre del archivo del backend
+        const getArtworkSource = (filename) => {
+          // Nota: Los requires en React Native deben ser estáticos. 
+          // Si el archivo no existe físicamente en assets/, el bundler fallará.
+          try {
+            switch (filename) {
+              case 'apple-ad.jpg':
+                return require('../assets/apple-ad.jpg'); 
+              case 'beats-ad.jpg':
+                return require('../assets/beats-ad.jpg');
+              default:
+                return require('../assets/ad-cover.jpg');
+            }
+          } catch (e) {
+            return require('../assets/ad-cover.jpg');
+          }
+        };
+
         adData = {
           title: aiAd.title,
           artist: aiAd.artist,
-          artwork: require('../assets/ad-cover.jpg'), // Usar placeholder por ahora
+          artwork: getArtworkSource(aiAd.artwork),
           color: aiAd.color,
           sponsorLink: aiAd.sponsorLink
         };
@@ -339,6 +368,17 @@ export default function PlayerScreen({ route, navigation }) {
               <View style={styles.interludeBadgeContainer}>
                 <View style={styles.interludeBadge}>
                   <Text style={styles.interludeBadgeText}>powered by </Text>
+                  <Text style={styles.interludeBadgeBrand}>interlude</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Sticker de preparación AI - Diseño más limpio y consistente */}
+            {isPreparingAd && (
+              <View style={styles.preparingStickerContainer}>
+                <View style={[styles.interludeBadge, { backgroundColor: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.3)' }]}>
+                  <ActivityIndicator size="small" color="#FF00A8" style={{ marginRight: 8, transform: [{ scale: 0.8 }] }} />
+                  <Text style={styles.interludeBadgeText}>Generating with </Text>
                   <Text style={styles.interludeBadgeBrand}>interlude</Text>
                 </View>
               </View>
@@ -696,5 +736,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     letterSpacing: 0.3,
+  },
+  preparingStickerContainer: {
+    position: 'absolute',
+    bottom: 20, // Posicionarlo justo encima del badge normal o en el mismo sitio
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 20,
   },
 });

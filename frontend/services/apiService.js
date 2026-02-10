@@ -1,6 +1,6 @@
 // API service for communicating with the backend
 // Usa tu IP local en lugar de localhost para que funcione en dispositivos físicos
-const API_BASE_URL = 'http://10.192.84.215:3000/api';
+const API_BASE_URL = 'http://192.168.1.51:3000/api';
 
 /**
  * Analiza y genera un anuncio con IA
@@ -8,9 +8,10 @@ const API_BASE_URL = 'http://10.192.84.215:3000/api';
  * @param {Object} nextSong - Siguiente canción
  * @param {string} userLocation - Ubicación del usuario
  * @param {number} songsSinceLastAd - Canciones desde el último anuncio
+ * @param {string} userName - Nombre del usuario para personalización
  * @returns {Promise<Object>} Respuesta del backend
  */
-export async function analyzeAndGenerateAd(currentSong, nextSong, userLocation = 'Barcelona', songsSinceLastAd = 0) {
+export async function analyzeAndGenerateAd(currentSong, nextSong, userLocation = 'Barcelona', songsSinceLastAd = 0, userName = '') {
   try {
     console.log('📡 Llamando al backend para analizar anuncio...');
     
@@ -23,7 +24,8 @@ export async function analyzeAndGenerateAd(currentSong, nextSong, userLocation =
         currentSong,
         nextSong,
         userLocation,
-        songsSinceLastAd
+        songsSinceLastAd,
+        userName
       })
     });
 

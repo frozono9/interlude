@@ -28,8 +28,9 @@ class AudioMixerService {
 
       return new Promise((resolve, reject) => {
         ffmpeg()
-          // Input 0: Background music
+          // Input 0: Background music - Limit reading to save time
           .input(bgPath)
+          .inputOptions([`-t ${totalDuration + 5}`]) 
           // Input 1: Speech
           .input(speechPath)
           .complexFilter([
@@ -48,7 +49,7 @@ class AudioMixerService {
             },
             {
               filter: 'volume',
-              options: { volume: 0.15 },
+              options: { volume: 0.06 }, // Volumen mucho más bajo para que destaque la voz
               inputs: 'bg_in',
               outputs: 'bg_vol'
             },
@@ -74,7 +75,12 @@ class AudioMixerService {
             }
           ], 'mixed')
           .outputOptions([
-            `-t ${totalDuration}`
+            `-t ${totalDuration}`,
+            '-codec:a libmp3lame', // Codec MP3 optimizado
+            '-b:a 128k', // Bitrate moderado para velocidad
+            '-ar 44100', // Sample rate estándar
+            '-ac 2', // Estéreo
+            '-threads 0' // Usar todos los cores disponibles
           ])
           .on('error', (err) => {
             console.error('❌ FFmpeg mixing error:', err);
