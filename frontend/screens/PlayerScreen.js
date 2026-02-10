@@ -161,7 +161,7 @@ export default function PlayerScreen({ route, navigation }) {
       if (selectedId === 'bb_ticketmaster') {
         forcedNextSongTitleRef.current = 'Blinding Lights';
       } else if (selectedId === 'olivia_beats') {
-        forcedNextSongTitleRef.current = 'As It Was';
+        forcedNextSongTitleRef.current = 'MONACO';
       } else if (selectedId === 'bb_rauw_collab') {
         forcedNextSongTitleRef.current = 'Diluvio';
       } else {
