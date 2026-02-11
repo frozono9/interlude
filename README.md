@@ -6,8 +6,8 @@ By integrating with platforms like **Spotify** or **Apple Music**, Interlude tra
 
 ## Watch the Demo
 <div align="center">
-  <a href="https://www.youtube.com/watch?v=4Kmadd94dKA">
-    <img src="https://img.youtube.com/vi/4Kmadd94dKA/maxresdefault.jpg" alt="Interlude Demo Video" width="100%">
+  <a href="https://www.youtube.com/watch?v=CEKsTGCRoJM">
+    <img src="https://img.youtube.com/vi/CEKsTGCRoJM/maxresdefault.jpg" alt="Interlude Demo Video" width="100%">
   </a>
   <p><i>Click to watch the full product demonstration on YouTube</i></p>
 </div>
